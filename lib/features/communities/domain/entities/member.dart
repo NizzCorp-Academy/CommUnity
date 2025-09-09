@@ -1,6 +1,7 @@
 class Member {
   final String name;
-  final String email;
 
-  Member({required this.name, required this.email});
+  final String id;
+
+  Member({required this.id, required this.name});
 }

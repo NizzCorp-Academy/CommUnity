@@ -2,20 +2,57 @@ part of 'community_bloc.dart';
 
 @immutable
 sealed class CommunityEvent {}
-class GetAllCommunitiesEvent extends CommunityEvent{}
-class LoadMyCommunities extends CommunityEvent {}
-class LoadJoinedCommunities extends CommunityEvent {
+
+//GET MY COMMUNITIIES
+class LoadMyCommunities extends CommunityEvent {
   final String userId;
-  LoadJoinedCommunities(this.userId);
+  LoadMyCommunities(this.userId);
 }
-class CreateCommunityEvent extends CommunityEvent {
-  final Community community;
-  CreateCommunityEvent(this.community);
+
+//GET ALL COMMUNITIES
+class LoadAllCommunities extends CommunityEvent {
+  final String userId;
+  LoadAllCommunities(this.userId);
 }
-class JoinCommunityEvent extends CommunityEvent {
+
+//SEARCH COMMUNITIEIS
+class SearchCommunities extends CommunityEvent {
+  final String query;
+  SearchCommunities(this.query);
+}
+
+//JOIN COMMUNITY
+class JoinCommunity extends CommunityEvent {
+  final String userId;
   final String communityId;
-  final String userId; 
-  JoinCommunityEvent(this.communityId, this.userId);
+
+  JoinCommunity({required this.userId, required this.communityId});
 }
-class CommunityJoinInProgress extends CommunityState {}
-class CommunityJoinSuccess extends CommunityState {}
+
+//CREATE COMMUNITY
+class CreateCommunity extends CommunityEvent {
+  final Community community;
+
+  CreateCommunity({required this.community});
+}
+
+//IS ADMIN
+class CheckAdminStatus extends CommunityEvent {
+  final String userId;
+  final String communityId;
+
+  CheckAdminStatus({required this.userId, required this.communityId});
+}
+
+//GET ALL COMMUNITY MEMBERS
+class LoadCommunityMembers extends CommunityEvent {
+  final String communityId;
+  LoadCommunityMembers(this.communityId);
+}
+
+//DELETE MEMBERS
+class DeleteMemberRequested extends CommunityEvent {
+  final String userId;
+  final String communityId;
+  DeleteMemberRequested({required this.userId, required this.communityId});
+}

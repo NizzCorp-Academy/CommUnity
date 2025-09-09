@@ -1,115 +1,154 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:community_helpboard/features/posts/domain/entities/comment.dart';
+
 import 'package:community_helpboard/features/posts/domain/entities/post.dart';
 import 'package:community_helpboard/features/posts/domain/repositories/i_post_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PostRepositoryImpl extends IPostRepository {
   final CollectionReference communitiesRef = FirebaseFirestore.instance
       .collection('communities');
 
-  Future<String> _getPostId(communityId) async {
-    final postDocsSnapsho = await communitiesRef
-        .doc(communityId)
-        .collection('posts')
-        .get();
-
-    return postDocsSnapsho.docs.first.id;
-  }
+  //GET ALL POSTS (category)
 
   @override
-  Future<void> createPost(Post post) async {
+  Future<List<Post>> getAllPosts({
+    required String communityId,
+    required String category,
+  }) async {
     try {
-      String postDocId = await _getPostId(post.communityId);
-      await communitiesRef
-          .doc(post.communityId)
-          .collection('posts')
-          .doc(postDocId)
-          .collection(post.category)
-          .add({
-            'comments': post.comments,
-            'createdAt': post.createdAt,
-            'description': post.description,
-            'title': post.title,
-            'imageUrl': post.imageUrl,
-          });
-    } catch (e) {
-      // ignore: avoid_print
-      print('Failed to create post..');
-    }
-  }
-
-  @override
-  Future<List<Post>> getAllPosts(String communityId, String category) async {
-    try {
-      String postDocId = await _getPostId(communityId);
-      final snapshot = await communitiesRef
+      final postedDataList = await communitiesRef
           .doc(communityId)
           .collection('posts')
-          .doc(postDocId)
+          .doc('main')
           .collection(category)
           .get();
 
-      return snapshot.docs
-          .map(
-            (document) => Post(
-              imageUrl: '',
-              communityId: communityId,
-              category: category,
-              title: document['title'],
-              comments: [],
-              description: document['description'],
-              createdAt: '',
-            ),
-          )
-          .toList();
+      return postedDataList.docs.map((post) {
+        return Post(
+          userName: post['userName'],
+          id: post['postId'],
+          createdAt: post['createdAt'],
+          communityId: communityId,
+          category: post['category'],
+          comments: post['comments'],
+          description: post['description'],
+          title: post['title'],
+        );
+      }).toList();
     } catch (e) {
-      throw Exception('Failed to get post..');
+      throw 'Failed to get posts.';
     }
   }
 
-  removePost(String communityId, String postId, String category) async {
-    String postDocId = await _getPostId(communityId);
+  //CREATE POST
+  @override
+  Future<void> createPost(Post post) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final user = FirebaseFirestore.instance.collection('users').doc(userId);
+      final userData = await user.get();
+      final useProfile = userData.data();
 
-    await communitiesRef
-        .doc(communityId)
-        .collection('posts')
-        .doc(postDocId)
-        .collection(category)
-        .doc(postId)
-        .delete();
+      final docRef = await communitiesRef
+          .doc(post.communityId)
+          .collection('posts')
+          .doc('main')
+          .collection(post.category)
+          .add({
+            'userName': useProfile?['name'],
+            'comments': post.comments,
+            'description': post.description,
+            'title': post.title,
+            'createdAt': post.createdAt,
+            'category': post.category,
+          });
+      await docRef.update({'postId': docRef.id});
+      await user.update({'postCount': FieldValue.increment(1)});
+    } catch (e) {
+      throw 'Failed to create post.';
+    }
   }
 
-  addComment(communityId, category, postId, comment) async {
-    String postDocId = await _getPostId(communityId);
+  //GET COMMENT
+  @override
+  Future<List<Comment>> getComments({
+    required String communityId,
+    required String category,
+    required String postId,
+  }) async {
+    try {
+      final postData = await communitiesRef
+          .doc(communityId)
+          .collection('posts')
+          .doc('main')
+          .collection(category)
+          .doc(postId)
+          .get();
 
-    await communitiesRef
-        .doc(communityId)
-        .collection('posts')
-        .doc(postDocId)
-        .collection(category)
-        .doc(postId)
-        .set({
-          'comment': [
-            FieldValue.arrayRemove([comment]),
-          ],
-        });
+      final post = postData.data();
+      final List comments = post?['comments'];
+
+      return comments.map((comment) {
+        return Comment(
+          commentText: comment['comment'],
+          userName: comment['userName'],
+        );
+      }).toList();
+    } catch (e) {
+      throw 'Failed to get comments.';
+    }
   }
 
-  Future<Iterable<Comment>> viewcomment(communityId, category, postId) async {
-    String postDocId = await _getPostId(communityId);
+  // ADD COMMENT
+  @override
+  Future<void> addComment({
+    required String communityId,
+    required String category,
+    required String postId,
+    required String commentText,
+  }) async {
+    try {
+      final user = FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid);
 
-    final snaphshot = await communitiesRef
-        .doc(communityId)
-        .collection('posts')
-        .doc(postDocId)
-        .collection(category)
-        .doc(postId)
-        .get();
-    final data = snaphshot.data();
-    final List comment = data?['comment'];
+      final userData = await user.get();
+      final userProfile = userData.data();
+      await communitiesRef
+          .doc(communityId)
+          .collection('posts')
+          .doc('main')
+          .collection(category)
+          .doc(postId)
+          .update({
+            'comments': FieldValue.arrayUnion([
+              {'comment': commentText, 'userName': userProfile?['name']},
+            ]),
+          });
+      await user.update({'commentCount': FieldValue.increment(1)});
+    } catch (e) {
+      throw 'Failed to add comment.';
+    }
+  }
 
-    return comment.map((e) {
-      return Comment();
-    });
+  //DELTE POST
+  @override
+  Future<void> deletePost({
+    required String communityId,
+    required String category,
+    required String postId,
+  }) async {
+    try {
+      await communitiesRef
+          .doc(communityId)
+          .collection('posts')
+          .doc('main')
+          .collection(category)
+          .doc(postId)
+          .delete();
+    } catch (e) {
+      throw 'Failed to delete post.';
+    }
   }
 }

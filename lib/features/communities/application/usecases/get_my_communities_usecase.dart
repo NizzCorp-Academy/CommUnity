@@ -6,6 +6,6 @@ class GetMyCommunitiesUsecase {
 
   GetMyCommunitiesUsecase(this.repository);
   Future<List<Future<Community>>> call(String userId) {
-    return repository.getJoinedCommunities(userId);
+    return repository.getMyCommunities(userId);
   }
 }

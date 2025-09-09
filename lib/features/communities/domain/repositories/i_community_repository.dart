@@ -3,14 +3,20 @@ import 'package:community_helpboard/features/communities/domain/entities/member.
 
 abstract class ICommunityRepository {
   Future<void> createCommunity(Community community);
-  Future<List<Community>> getAllCommunities();
+
+  Future<bool> isAdmin({required String communityId, required String userId});
+  Future<List<Community>> searchCommunities(String query);
+
   Future<void> joinCommunity({
     required String communityId,
     required String userId,
   });
-   Future<List<Future<Community>>>getJoinedCommunities(String userId);
-  Future<void> removeMemberFromCommunity({required String userId, required String communityId});
-  Future<List<Future<Member>>>getCommunityMembers(String communityId);
-  Future<bool> isAdmin({required String communityId, required String userId});
-  Future<List<Community>> searchCommunities(String query);
+  Future<List<Community>> getAllCommunities(String userId);
+  Future<List<Future<Community>>> getMyCommunities(String userId);
+  Future<List<Future<Member>>> getCommunityMembers(String communityId);
+
+  Future<void> deleteMembers({
+    required String userId,
+    required String communityId,
+  });
 }

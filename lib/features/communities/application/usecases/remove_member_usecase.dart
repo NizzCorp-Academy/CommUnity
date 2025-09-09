@@ -6,7 +6,7 @@ class RemoveMemberFromCommunityUseCase {
   RemoveMemberFromCommunityUseCase(this.repository);
 
   Future<void> call({required String communityId, required String userId}) {
-    return repository.removeMemberFromCommunity(
+    return repository.deleteMembers(
       communityId: communityId,
       userId: userId,
     );

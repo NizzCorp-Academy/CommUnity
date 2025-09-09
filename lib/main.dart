@@ -1,13 +1,25 @@
+import 'package:community_helpboard/features/auth/application/bloc/auth_bloc.dart';
+
+import 'package:community_helpboard/features/auth/domain/repositories/i_auth_repository.dart';
+import 'package:community_helpboard/features/auth/infrastructure/auth_repository_impl.dart';
 import 'package:community_helpboard/features/communities/application/bloc/community_bloc.dart';
 import 'package:community_helpboard/features/communities/domain/repositories/i_community_repository.dart';
 import 'package:community_helpboard/features/communities/infrastructure/community_repository_impl.dart';
-import 'package:community_helpboard/features/communities/presentation/pages/home_screen.dart';
+
 import 'package:community_helpboard/features/core/app_colors.dart';
+import 'package:community_helpboard/features/core/app_theme.dart';
+import 'package:community_helpboard/features/core/app_text_styles.dart';
+import 'package:community_helpboard/features/profile/application/bloc/profile_bloc.dart';
+import 'package:community_helpboard/features/profile/domain/repositories/i_profile_repository.dart';
+import 'package:community_helpboard/features/profile/infrastructure/profile_repository_impl.dart';
+
 import 'package:community_helpboard/features/posts/application/bloc/post_bloc.dart';
 import 'package:community_helpboard/features/posts/domain/repositories/i_post_repository.dart';
 import 'package:community_helpboard/features/posts/infrastructure/repositories/post_repository_impl.dart';
-import 'package:community_helpboard/features/posts/presentation/pages/post_screen.dart';
+import 'package:community_helpboard/features/splash/presentation/screens/splash_screen.dart';
+
 import 'package:firebase_core/firebase_core.dart';
+
 import 'package:flutter/material.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,27 +27,50 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
   runApp(
     MultiRepositoryProvider(
       providers: [
+        //AUTH
+        RepositoryProvider<IAuthRepository>(
+          create: (_) => AuthRepositoryImpl(),
+        ),
+        //COMMUNITY
         RepositoryProvider<ICommunityRepository>(
           create: (_) => CommunityRepositoryImpl(),
         ),
+        //POST
         RepositoryProvider<IPostRepository>(
           create: (_) => PostRepositoryImpl(),
+        ),
+        //PROFILE
+        RepositoryProvider<IProfileRepository>(
+          create: (_) => ProfileRepositoryImpl(),
         ),
       ],
       child: MultiBlocProvider(
         providers: [
+          //AUTH
+          BlocProvider<AuthBloc>(
+            create: (context) => AuthBloc(context.read<IAuthRepository>()),
+          ),
+          //POST
+          BlocProvider<PostBloc>(
+            create: (context) => PostBloc(context.read<IPostRepository>()),
+          ),
+
+          //COMMUNITY
           BlocProvider<CommunityBloc>(
             create: (context) =>
                 CommunityBloc(context.read<ICommunityRepository>()),
           ),
-          BlocProvider<PostBloc>(
-            create: (context) => PostBloc(context.read<IPostRepository>()),
+          //PROFILE
+          BlocProvider<ProfileBloc>(
+            create: (context) =>
+                ProfileBloc(context.read<IProfileRepository>()),
           ),
         ],
-        child: const MyApp(),
+        child: MyApp(),
       ),
     ),
   );
@@ -47,55 +82,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: HomeScreen(),
+      home: SplashScreen(),
+
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.background,
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Color.fromRGBO(255, 255, 255, 1),
-          hintStyle: TextStyle(
-            color: Color.fromRGBO(110, 110, 110, 1),
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            fontFamily: 'Inter-regular',
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-            borderSide: BorderSide(
-              color: Color.fromRGBO(0, 0, 0, 0.1),
-              width: 1,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-            borderSide: BorderSide(
-              color: Color.fromRGBO(0, 0, 0, 0.1),
-              width: 1,
-            ),
-          ),
-        ),
+        inputDecorationTheme: AppTheme.theme,
         textTheme: TextTheme(
-          headlineSmall: TextStyle(
-            fontSize: 16.0,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Inter-SemiBold',
-            color: Color.fromRGBO(46, 46, 46, 1),
-          ),
-          bodySmall: TextStyle(
-            color: Color.fromRGBO(110, 110, 110, 1),
-            fontSize: 12.0,
-            fontWeight: FontWeight.w400,
-            fontFamily: 'Inter-Regular',
-            overflow: TextOverflow.ellipsis,
-          ),
-          bodyMedium: TextStyle(
-            color: Color.fromRGBO(46, 46, 46, 1),
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-            fontFamily: 'Inter-Regular',
-          ),
+          headlineSmall: AppTextStyles.headlineSmall,
+          headlineLarge: AppTextStyles.headlineLarge,
+          bodySmall: AppTextStyles.bodySmall,
+          bodyMedium: AppTextStyles.bodyMedium,
+          titleSmall: AppTextStyles.titleSmall,
         ),
       ),
+
       debugShowCheckedModeBanner: false,
     );
   }

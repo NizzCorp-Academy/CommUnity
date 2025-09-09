@@ -8,6 +8,6 @@ class GetAllPostsUsecase {
     required String communityId,
     required String category,
   }) async {
-    return await repository.getAllPosts(communityId, category);
+    return await repository.getAllPosts(communityId:  communityId,category:  category);
   }
 }

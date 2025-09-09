@@ -1,129 +1,120 @@
 import 'package:community_helpboard/features/communities/application/bloc/community_bloc.dart';
-
-import 'package:community_helpboard/features/communities/domain/repositories/i_community_repository.dart';
-
-import 'package:community_helpboard/features/communities/presentation/widgets/primary_button.dart';
-import 'package:community_helpboard/features/core/app_colors.dart';
+import 'package:community_helpboard/features/communities/presentation/widgets/community_join_card.dart';
+import 'package:community_helpboard/features/core/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AllCommunitiesList extends StatelessWidget {
-  const AllCommunitiesList({super.key});
+  final String userId;
+  final bool isLoading;
+  const AllCommunitiesList({
+    super.key,
+    required this.userId,
+    required this.isLoading,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          CommunityBloc(context.read<ICommunityRepository>())
-            ..add(GetAllCommunitiesEvent()),
-      child: BlocBuilder<CommunityBloc, CommunityState>(
-        builder: (context, state) {
-          if (state is CommunityLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is CommunityLoaded) {
-            final communities = state.communities;
+    final screenHeight = MediaQuery.of(context).size.height;
+    return BlocBuilder<CommunityBloc, CommunityState>(
+      buildWhen: (previous, current) =>
+          current is CommunityLoading ||
+          current is CommunityLoaded ||
+          current is CommunitySearchLoading ||
+          current is CommunitySearchResult ||
+          current is CommunityError,
 
-            if (communities.isEmpty) {
-              return const Center(child: Text('No communities available.'));
-            }
-
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              itemCount: communities.length,
-              itemBuilder: (context, index) {
-                final community = communities[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  width: 358,
-                  height: 144,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(12)),
-                    color: AppColors.kPrimaryColor,
-                    boxShadow: const [
-                      BoxShadow(
-                        spreadRadius: 0,
-                        blurRadius: 2,
-                        color: Color.fromRGBO(0, 0, 0, 0.05),
-                        offset: Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Image.asset(
-                          'assets/images/covimage.png',
-                          width: 80,
-                          height: 80,
-                        ),
-                        const SizedBox(width: 13),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                community.name,
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(fontFamily: 'Inter-Regular'),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                softWrap: true,
-                                community.description,
-                                maxLines: 2,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(fontSize: 14),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${community.members.length} members',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                  GestureDetector(
-                                    child: PrimaryButton(
-                                      width: 60,
-                                      height: 36,
-                                      radius: 8,
-                                      text: 'Join',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                      onTap: () {
-                                        context.read<CommunityBloc>().add(
-                                          JoinCommunityEvent(
-                                            '${community.id}',
-                                            'TbL4JKHcFpOfz8wZUMDYpmdFOwZ2',
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+      builder: (context, state) {
+        if (state is CommunityLoading || state is CommunitySearchLoading) {
+          return SizedBox(
+            height: screenHeight * 0.246,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (state is CommunityLoaded) {
+          if (state.communities.isEmpty) {
+            return SizedBox(
+              height: screenHeight * 0.246,
+              child: Center(
+                child: Text(
+                  "No communities found.",
+                  style: AppTextStyles.infoText,
+                ),
+              ),
             );
           } else {
-            return const SizedBox();
+            return ListView.separated(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              separatorBuilder: (context, index) {
+                return SizedBox(height: 7);
+              },
+              itemBuilder: (context, index) {
+                final community = state.communities[index];
+                return CommunityJoinCard(
+                  name: community.name,
+                  description: community.description,
+                  onTap: isLoading
+                      ? null
+                      : () {
+                          context.read<CommunityBloc>().add(
+                            JoinCommunity(
+                              communityId: community.id,
+                              userId: userId,
+                            ),
+                          );
+                        },
+                  memberCount: community.members.length,
+                );
+              },
+              itemCount: state.communities.length,
+            );
           }
-        },
-      ),
+        } else if (state is CommunitySearchResult) {
+          if (state.communities.isEmpty) {
+            return SizedBox(
+              height: screenHeight * 0.246,
+              child: Center(
+                child: Text(
+                  "No communities found.",
+                  style: AppTextStyles.infoText,
+                ),
+              ),
+            );
+          } else {
+            return ListView.separated(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              separatorBuilder: (context, index) {
+                return SizedBox(height: 7);
+              },
+              itemBuilder: (context, index) {
+                final community = state.communities[index];
+                return CommunityJoinCard(
+                  name: community.name,
+                  description: community.description,
+                  onTap: isLoading
+                      ? null
+                      : () {
+                          context.read<CommunityBloc>().add(
+                            JoinCommunity(
+                              communityId: community.id,
+                              userId: userId,
+                            ),
+                          );
+                        },
+                  memberCount: community.members.length,
+                );
+              },
+              itemCount: state.communities.length,
+            );
+          }
+        }
+
+        return SizedBox();
+      },
     );
   }
 }

@@ -16,13 +16,14 @@ dependencies:
   flutter_bloc: ^9.1.1
   firebase_core: ^3.15.2
   firebase_auth: ^5.7.0
- 
+  flutter_launcher_icons: ^0.13.1
 
   
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+
 
 flutter:
   uses-material-design: true
@@ -40,3 +41,15 @@ flutter:
     - family: Inter-Regular
       fonts:
         - asset: assets/fonts/Inter-Regular.otf
+    - family: Inter-Medium
+      fonts:
+        - asset: assets/fonts/Inter-Medium.otf
+    - family: Inter-Bold
+      fonts:
+        - asset: assets/fonts/Inter-Bold.otf
+   
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_home_logo.jpg"    
